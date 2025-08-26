@@ -7,7 +7,7 @@ export class MyRoom extends Room {
   state = new MyRoomState()
 
   onCreate (options) {
-    console.log('MyRoom created!')
+    console.log('Main room created!')
     this.autoDispose = false
     this.state.players = new Map()
     const directions = { 'up': 0, 'right': 1, 'down': 2, 'left': 3 }
@@ -63,16 +63,16 @@ export class MyRoom extends Room {
       if (player.isMoving) {
         switch (player.direction) {
           case 0: // up
-            player.y -= 1
+            player.y -= 3
             break
           case 1: // right
-            player.x += 1
+            player.x += 3
             break
           case 2: // down
-            player.y += 1
+            player.y += 3
             break
           case 3: // left
-            player.x -= 1
+            player.x -= 3
             break
         }
       }
