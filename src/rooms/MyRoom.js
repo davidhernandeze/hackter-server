@@ -5,12 +5,30 @@ import { Player } from './schema/Player.js'
 export class MyRoom extends Room {
   maxClients = 100
   state = new MyRoomState()
+  mapVertices = []
+  rooms = []
+  bridges = []
+
+  // Map generation parameters
+  roomSize = 1000
+  maxRooms = 10
+  initialRoomX = 500
+  initialRoomY = 500
 
   onCreate (options) {
     console.log('Main room created!')
     this.autoDispose = false
     this.state.players = new Map()
     const directions = { 'up': 0, 'right': 1, 'down': 2, 'left': 3 }
+
+    // Set map parameters from options or use defaults
+    this.roomSize = options?.roomSize || this.roomSize
+    this.maxRooms = options?.maxRooms || this.maxRooms
+    this.initialRoomX = options?.initialRoomX || this.initialRoomX
+    this.initialRoomY = options?.initialRoomY || this.initialRoomY
+
+    // Generate the map
+    this.generateMap()
 
     this.setSimulationInterval((deltaTime) => this.update(deltaTime))
 
@@ -44,8 +62,15 @@ export class MyRoom extends Room {
     const player = new Player()
     player.name = playerName
     player.color = options.color
-    player.x = Math.floor(Math.random() * 1000)
-    player.y = Math.floor(Math.random() * 1000)
+
+    // Place player in the initial room with a small random offset
+    const initialRoom = this.rooms.find(room => room.isInitial)
+    if (initialRoom) {
+      const offset = this.roomSize / 4
+      player.x = initialRoom.x + (Math.random() * offset * 2 - offset)
+      player.y = initialRoom.y + (Math.random() * offset * 2 - offset)
+    }
+
     this.state.players.set(client.sessionId, player)
   }
 
@@ -58,22 +83,102 @@ export class MyRoom extends Room {
     console.log('room', this.roomId, 'disposing...')
   }
 
+  // Generate the map with a single square room
+  generateMap() {
+    // Clear previous map data
+    this.mapVertices = []
+    this.rooms = []
+    this.bridges = []
+
+    // Create a single square room
+    const singleRoom = {
+      x: this.initialRoomX,
+      y: this.initialRoomY,
+      size: this.roomSize,
+      isInitial: true,
+      bridges: []
+    }
+
+    this.rooms.push(singleRoom)
+
+    // Generate the polygon vertices for the single square
+    this.generatePolygon()
+
+    // Update state with map vertices
+    this.state.mapVertices = this.mapVertices
+  }
+
+  // Generate polygon vertices for a single square room
+  generatePolygon() {
+    // Get the single room
+    const room = this.rooms[0]
+    const halfSize = room.size / 2
+
+    // Add room corners (clockwise)
+    this.addVertex(room.x - halfSize, room.y - halfSize) // top-left
+    this.addVertex(room.x + halfSize, room.y - halfSize) // top-right
+    this.addVertex(room.x + halfSize, room.y + halfSize) // bottom-right
+    this.addVertex(room.x - halfSize, room.y + halfSize) // bottom-left
+  }
+
+  // Add a vertex to the map polygon
+  addVertex(x, y) {
+    this.mapVertices.push(x, y)
+  }
+
+  // Check if a point is inside the map (single square)
+  isPointInMap(x, y) {
+    // Get the single room
+    const room = this.rooms[0]
+    const halfSize = room.size / 2
+
+    // Check if point is inside the square room
+    if (
+      x >= room.x - halfSize &&
+      x <= room.x + halfSize &&
+      y >= room.y - halfSize &&
+      y <= room.y + halfSize
+    ) {
+      return true
+    }
+
+    return false
+  }
+
   update (deltaTime) {
     for (const [sessionId, player] of this.state.players) {
       if (player.isMoving) {
+        // Store current position
+        const prevX = player.x
+        const prevY = player.y
+
+        // Calculate new position
+        let newX = prevX
+        let newY = prevY
+
         switch (player.direction) {
           case 0: // up
-            player.y -= 3
+            newY -= 3
             break
           case 1: // right
-            player.x += 3
+            newX += 3
             break
           case 2: // down
-            player.y += 3
+            newY += 3
             break
           case 3: // left
-            player.x -= 3
+            newX -= 3
             break
+        }
+
+        // Check if new position is inside the map
+        if (this.isPointInMap(newX, newY)) {
+          // Update position if inside map
+          player.x = newX
+          player.y = newY
+        } else {
+          // Keep player at current position if outside map
+          player.isMoving = false
         }
       }
     }
