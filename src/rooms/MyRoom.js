@@ -10,7 +10,7 @@ export class MyRoom extends Room {
   bridges = []
 
   // Map generation parameters
-  roomSize = 1000
+  roomSize = 1500
   maxRooms = 10
   initialRoomX = 500
   initialRoomY = 500
@@ -179,6 +179,7 @@ export class MyRoom extends Room {
         } else {
           // Keep player at current position if outside map
           player.isMoving = false
+          this.state.players.delete(sessionId)
         }
       }
     }
