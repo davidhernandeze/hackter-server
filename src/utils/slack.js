@@ -1,6 +1,7 @@
 import * as https from 'node:https'
 
 export function postMessageToSlack(message) {
+    if (process.env.ENVIRONMENT === 'development') return
     const data = JSON.stringify({
         channel: process.env.SLACK_CHANNEL,
         text: message
