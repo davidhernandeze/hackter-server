@@ -78,7 +78,7 @@ export class MyRoom extends Room {
 
   onLeave (client, consented) {
     console.log(client.sessionId, 'left!')
-    postMessageToSlack(`${playerName} joined the game at ${new Date().toLocaleTimeString()}`)
+    postMessageToSlack(`${this.state.players.get(client.sessionId)?.name} joined the game at ${new Date().toLocaleTimeString()}`)
     this.state.players.delete(client.sessionId)
   }
 
