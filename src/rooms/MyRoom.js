@@ -1,6 +1,7 @@
 import { Room } from '@colyseus/core'
 import { MyRoomState } from './schema/MyRoomState.js'
 import { Player } from './schema/Player.js'
+import { postMessageToSlack } from '../utils/slack.js'
 
 export class MyRoom extends Room {
   maxClients = 100
@@ -59,6 +60,7 @@ export class MyRoom extends Room {
   onJoin (client, options) {
     const playerName = options.name.slice(0, 10)
     console.log(playerName, 'joined!')
+    postMessageToSlack(`${playerName} joined the game at ${new Date().toLocaleTimeString()}`)
     const player = new Player()
     player.name = playerName
     player.color = options.color
@@ -76,6 +78,7 @@ export class MyRoom extends Room {
 
   onLeave (client, consented) {
     console.log(client.sessionId, 'left!')
+    postMessageToSlack(`${playerName} joined the game at ${new Date().toLocaleTimeString()}`)
     this.state.players.delete(client.sessionId)
   }
 
