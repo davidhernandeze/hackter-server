@@ -56,6 +56,9 @@ export class MyRoom extends Room {
           player.message = ''
         }, 5000)
       }
+      if (message === 'start') {
+        this.broadcast('player_started')
+      }
     })
   }
 
