@@ -14,7 +14,7 @@ const __dirname = path.dirname(__filename);
  * @param {string} outputDir - Directory to save output files (default: '../assets')
  * @returns {Promise<{pixelMap: number[][], vertices: number[]}>}
  */
-async function processMapImage(imagePath = '../assets/map.png', pixelScale = 10, outputDir = '../assets') {
+async function processMapImage(imagePath = '../assets/map.png', pixelScale = 5, outputDir = '../assets') {
   try {
     // Resolve the absolute path to the image if it's not already absolute
     const absoluteImagePath = path.isAbsolute(imagePath) 

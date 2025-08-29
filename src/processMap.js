@@ -33,7 +33,7 @@ async function main() {
   // Get command line arguments
   const args = process.argv.slice(2);
   let imagePath = args[0] || './assets/hackter_map.png';
-  const pixelScale = parseInt(args[1]) || 10;
+  const pixelScale = parseInt(args[1]) || 5;
   let outputDir = args[2] || './assets';
 
   // If the paths are not absolute, resolve them relative to the src directory

@@ -35,6 +35,8 @@ export class MyRoom extends Room {
 
     this.onMessage('command', (client, message) => {
       const player = this.state.players.get(client.sessionId)
+      if (!player) return
+      
       if (Object.keys(directions).includes(message)) {
         player.isMoving = true
         player.direction = directions[message]
@@ -67,9 +69,9 @@ export class MyRoom extends Room {
 
     const initialRoom = this.rooms.find(room => room.isInitial)
     if (initialRoom) {
-      const offset = 500
-      player.x = Math.random() * offset * 2
-      player.y = Math.random() * offset * 2
+      const offset = 100
+      player.x = Math.random() * offset
+      player.y = Math.random() * offset
     }
 
     this.state.players.set(client.sessionId, player)
@@ -196,16 +198,16 @@ export class MyRoom extends Room {
 
         switch (player.direction) {
           case 0: // up
-            newY -= 1
+            newY -= 0.5
             break
           case 1: // right
-            newX += 1
+            newX += 0.5
             break
           case 2: // down
-            newY += 1
+            newY += 0.5
             break
           case 3: // left
-            newX -= 1
+            newX -= 0.5
             break
         }
 
