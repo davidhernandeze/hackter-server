@@ -69,7 +69,7 @@ export class MyRoom extends Room {
 
     const initialRoom = this.rooms.find(room => room.isInitial)
     if (initialRoom) {
-      const offset = 100
+      const offset = 80
       player.x = Math.random() * offset
       player.y = Math.random() * offset
     }
