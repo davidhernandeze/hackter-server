@@ -2,6 +2,7 @@ import { Room } from '@colyseus/core'
 import { MyRoomState } from './schema/MyRoomState.js'
 import { Player } from './schema/Player.js'
 import { postMessageToSlack } from '../utils/slack.js'
+import mapVertex from '../assets/vertices.json' with { type: 'json' }
 
 export class MyRoom extends Room {
   maxClients = 100
@@ -10,8 +11,7 @@ export class MyRoom extends Room {
   rooms = []
   bridges = []
 
-  // Map generation parameters
-  roomSize = 1500
+  roomSize = 200
   maxRooms = 10
   initialRoomX = 500
   initialRoomY = 500
@@ -65,12 +65,11 @@ export class MyRoom extends Room {
     player.name = playerName
     player.color = options.color
 
-    // Place player in the initial room with a small random offset
     const initialRoom = this.rooms.find(room => room.isInitial)
     if (initialRoom) {
-      const offset = this.roomSize / 4
-      player.x = initialRoom.x + (Math.random() * offset * 2 - offset)
-      player.y = initialRoom.y + (Math.random() * offset * 2 - offset)
+      const offset = 500
+      player.x = Math.random() * offset * 2
+      player.y = Math.random() * offset * 2
     }
 
     this.state.players.set(client.sessionId, player)
@@ -88,8 +87,7 @@ export class MyRoom extends Room {
 
   // Generate the map with a single square room
   generateMap() {
-    // Clear previous map data
-    this.mapVertices = []
+    this.mapVertices = mapVertex
     this.rooms = []
     this.bridges = []
 
@@ -105,7 +103,7 @@ export class MyRoom extends Room {
     this.rooms.push(singleRoom)
 
     // Generate the polygon vertices for the single square
-    this.generatePolygon()
+    // this.generatePolygon()
 
     // Update state with map vertices
     this.state.mapVertices = this.mapVertices
@@ -129,23 +127,60 @@ export class MyRoom extends Room {
     this.mapVertices.push(x, y)
   }
 
-  // Check if a point is inside the map (single square)
+  // Check if a point is inside the map using the perimeter polygon
   isPointInMap(x, y) {
-    // Get the single room
-    const room = this.rooms[0]
-    const halfSize = room.size / 2
+    // If no vertices, use the room boundaries as fallback
+    if (!this.mapVertices || this.mapVertices.length < 6) {
+      // Get the single room
+      const room = this.rooms[0]
+      const halfSize = room.size / 2
 
-    // Check if point is inside the square room
-    if (
-      x >= room.x - halfSize &&
-      x <= room.x + halfSize &&
-      y >= room.y - halfSize &&
-      y <= room.y + halfSize
-    ) {
-      return true
+      // Check if point is inside the square room
+      return (
+        x >= room.x - halfSize &&
+        x <= room.x + halfSize &&
+        y >= room.y - halfSize &&
+        y <= room.y + halfSize
+      )
     }
 
-    return false
+    // Use ray casting algorithm to determine if point is inside polygon
+    // This works for any polygon shape, not just rectangles
+    let inside = false
+    const vertexCount = this.mapVertices.length / 2
+
+    // Need at least 3 vertices to form a polygon
+    if (vertexCount < 3) {
+      return false
+    }
+
+    // Ray casting algorithm
+    for (let i = 0, j = vertexCount - 1; i < vertexCount; j = i++) {
+      const xi = this.mapVertices[i * 2]
+      const yi = this.mapVertices[i * 2 + 1]
+      const xj = this.mapVertices[j * 2]
+      const yj = this.mapVertices[j * 2 + 1]
+
+      // Check if point is on a vertex
+      if ((xi === x && yi === y) || (xj === x && yj === y)) {
+        return true
+      }
+
+      // Check if point is on an edge
+      if ((yi === yj) && (yi === y) && (x > Math.min(xi, xj)) && (x < Math.max(xi, xj))) {
+        return true
+      }
+
+      // Ray casting test
+      const intersect = ((yi > y) !== (yj > y)) && 
+                        (x < (xj - xi) * (y - yi) / (yj - yi) + xi)
+
+      if (intersect) {
+        inside = !inside
+      }
+    }
+
+    return inside
   }
 
   update (deltaTime) {
@@ -161,16 +196,16 @@ export class MyRoom extends Room {
 
         switch (player.direction) {
           case 0: // up
-            newY -= 3
+            newY -= 1
             break
           case 1: // right
-            newX += 3
+            newX += 1
             break
           case 2: // down
-            newY += 3
+            newY += 1
             break
           case 3: // left
-            newX -= 3
+            newX -= 1
             break
         }
 
