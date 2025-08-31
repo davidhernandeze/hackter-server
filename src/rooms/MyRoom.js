@@ -15,6 +15,7 @@ export class MyRoom extends Room {
   maxRooms = 10
   initialRoomX = 500
   initialRoomY = 500
+  playerSpeed = 0.2
 
   onCreate (options) {
     console.log('Main room created!')
@@ -201,17 +202,18 @@ export class MyRoom extends Room {
 
         switch (player.direction) {
           case 0: // up
-            newY -= 0.5
+            newY -= this.playerSpeed
             break
           case 1: // right
-            newX += 0.5
+            newX += this.playerSpeed
             break
           case 2: // down
-            newY += 0.5
+            newY += this.playerSpeed
             break
           case 3: // left
-            newX -= 0.5
+            newX -= this.playerSpeed
             break
+          
         }
 
         // Check if new position is inside the map
