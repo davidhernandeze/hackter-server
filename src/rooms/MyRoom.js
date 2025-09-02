@@ -77,6 +77,7 @@ export class MyRoom extends Room {
         const offset = 80
         player.x = Math.random() * offset
         player.y = Math.random() * offset
+        player.started = false
 
         this.state.players.set(client.sessionId, player)
         this.reconnectionTokens.set(options.token, client.sessionId)
@@ -229,6 +230,7 @@ export class MyRoom extends Room {
                 } else {
                     player.isMoving = false
                     this.state.players.delete(sessionId)
+                    this.clients.getById(sessionId).leave()
                 }
             }
         }
