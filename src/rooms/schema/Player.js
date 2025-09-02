@@ -8,5 +8,5 @@ export const Player = schema({
   message: 'string',
   started: 'boolean',
   x: 'number',
-  y: 'number',
+  y: 'number'
 })
