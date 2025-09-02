@@ -68,7 +68,7 @@ export class MyRoom extends Room {
     onJoin(client, options) {
         const playerName = options.name.slice(0, 10)
         
-        if (this.reconnectOrFalse(options.token, client.sessionId)) return
+        if (this.reconnectOrFalse(options.token, client.sessionId, playerName)) return
 
         const player = new Player()
         player.name = playerName
@@ -236,7 +236,7 @@ export class MyRoom extends Room {
         }
     }
 
-    reconnectOrFalse(reconnectionToken, newSessionId) {
+    reconnectOrFalse(reconnectionToken, newSessionId, playerName) {
         if (!reconnectionToken) return false
         
         const reconnectedSessionId = this.reconnectionTokens.get(reconnectionToken)
@@ -245,6 +245,7 @@ export class MyRoom extends Room {
         const player = this.state.offlinePlayers.get(reconnectedSessionId)
         if (!player) return false
         
+        player.name = playerName
         this.state.offlinePlayers.delete(reconnectedSessionId)
         this.state.players.set(newSessionId, player)
         this.reconnectionTokens.set(reconnectionToken, newSessionId)
