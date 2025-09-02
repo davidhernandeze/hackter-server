@@ -49,13 +49,13 @@ export class MyRoom extends Room {
       }
       const splitCommand = message.split(' ')
       if (splitCommand[0] === 'print') {
-        const message = splitCommand.slice(1).join(' ').slice(0, 20)
+        const message = splitCommand.slice(1).join(' ').slice(0, 100)
 
         console.log(`${player.name} sent a message: ${message}`)
         player.message = message
-        setTimeout(() => {
-          player.message = ''
-        }, 5000)
+      }
+      if (message === 'clear') {
+        player.message = ''
       }
       if (message === 'start') {
         player.started = true
