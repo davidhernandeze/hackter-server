@@ -188,7 +188,7 @@ export class MyRoom extends Room {
             }
 
             this.updatePlayerView(player, sessionId)
-            player.lastRenderCheckAt = new Date().toISOString()
+            // player.lastRenderCheckAt = new Date().toISOString()
         }
     }
 
