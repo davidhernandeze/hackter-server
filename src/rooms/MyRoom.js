@@ -3,35 +3,22 @@ import { MyRoomState } from './schema/MyRoomState.js'
 import { Player } from './schema/Player.js'
 import { postMessageToSlack } from '../utils/slack.js'
 import mapVertex from '../assets/vertices.json' with { type: 'json' }
+import { StateView } from '@colyseus/schema'
 
 export class MyRoom extends Room {
     maxClients = 100
     state = new MyRoomState()
     mapVertices = []
-    rooms = []
-    bridges = []
 
-    roomSize = 200
-    maxRooms = 10
-    initialRoomX = 500
-    initialRoomY = 500
     playerSpeed = 0.2
     reconnectionTokens = new Map()
+    renderDistance = 80
 
     onCreate(options) {
         console.log('Main room created!')
         this.autoDispose = false
-        this.state.players = new Map()
-        this.state.offlinePlayers = new Map()
         const directions = { 'up': 0, 'right': 1, 'down': 2, 'left': 3 }
-
-        // Set map parameters from options or use defaults
-        this.roomSize = options?.roomSize || this.roomSize
-        this.maxRooms = options?.maxRooms || this.maxRooms
-        this.initialRoomX = options?.initialRoomX || this.initialRoomX
-        this.initialRoomY = options?.initialRoomY || this.initialRoomY
-
-        // Generate the map
+        
         this.generateMap()
 
         this.setSimulationInterval((deltaTime) => this.update(deltaTime))
@@ -59,27 +46,26 @@ export class MyRoom extends Room {
             if (message==='clear') {
                 player.message = ''
             }
-            if (message==='start') {
-                player.started = true
-            }
         })
     }
 
     onJoin(client, options) {
         const playerName = options.name.slice(0, 10)
         
-        if (this.reconnectOrFalse(options.token, client.sessionId, playerName)) return
+        if (this.reconnectOrFalse(options.token, client, playerName)) return
 
         const player = new Player()
         player.name = playerName
         player.color = options.color
-
         const offset = 80
+
         player.x = Math.random() * offset
         player.y = Math.random() * offset
-        player.started = false
-
+        player.renderDistance = this.renderDistance
         this.state.players.set(client.sessionId, player)
+
+        client.view = new StateView()
+        client.view.add(player)
         this.reconnectionTokens.set(options.token, client.sessionId)
         
         postMessageToSlack(`${playerName} joined the game at ${new Date().toLocaleTimeString()}`)
@@ -89,7 +75,7 @@ export class MyRoom extends Room {
     onLeave(client, consented) {
         console.log(client.sessionId, 'left!')
         const player  = this.state.players.get(client.sessionId)
-        postMessageToSlack(`${(player?.name || 'eliminated')}) left the game at ${new Date().toLocaleTimeString()}`)
+        postMessageToSlack(`${(player?.name || 'eliminated')} left the game at ${new Date().toLocaleTimeString()}`)
         if (!player) return
         this.state.offlinePlayers.set(client.sessionId, player)
         this.state.players.delete(client.sessionId)
@@ -102,38 +88,7 @@ export class MyRoom extends Room {
     // Generate the map with a single square room
     generateMap() {
         this.mapVertices = mapVertex
-        this.rooms = []
-        this.bridges = []
-
-        // Create a single square room
-        const singleRoom = {
-            x: this.initialRoomX,
-            y: this.initialRoomY,
-            size: this.roomSize,
-            isInitial: true,
-            bridges: []
-        }
-
-        this.rooms.push(singleRoom)
-
-        // Generate the polygon vertices for the single square
-        // this.generatePolygon()
-
-        // Update state with map vertices
         this.state.mapVertices = this.mapVertices
-    }
-
-    // Generate polygon vertices for a single square room
-    generatePolygon() {
-        // Get the single room
-        const room = this.rooms[0]
-        const halfSize = room.size / 2
-
-        // Add room corners (clockwise)
-        this.addVertex(room.x - halfSize, room.y - halfSize) // top-left
-        this.addVertex(room.x + halfSize, room.y - halfSize) // top-right
-        this.addVertex(room.x + halfSize, room.y + halfSize) // bottom-right
-        this.addVertex(room.x - halfSize, room.y + halfSize) // bottom-left
     }
 
     // Add a vertex to the map polygon
@@ -141,23 +96,7 @@ export class MyRoom extends Room {
         this.mapVertices.push(x, y)
     }
 
-    // Check if a point is inside the map using the perimeter polygon
     isPointInMap(x, y) {
-        // If no vertices, use the room boundaries as fallback
-        if (!this.mapVertices || this.mapVertices.length < 6) {
-            // Get the single room
-            const room = this.rooms[0]
-            const halfSize = room.size / 2
-
-            // Check if point is inside the square room
-            return (
-                    x >= room.x - halfSize &&
-                    x <= room.x + halfSize &&
-                    y >= room.y - halfSize &&
-                    y <= room.y + halfSize
-            )
-        }
-
         // Use ray casting algorithm to determine if point is inside polygon
         // This works for any polygon shape, not just rectangles
         let inside = false
@@ -233,10 +172,12 @@ export class MyRoom extends Room {
                     this.clients.getById(sessionId).leave()
                 }
             }
+
+            this.updatePlayerView(player, sessionId)
         }
     }
 
-    reconnectOrFalse(reconnectionToken, newSessionId, playerName) {
+    reconnectOrFalse(reconnectionToken, client, playerName) {
         if (!reconnectionToken) return false
         
         const reconnectedSessionId = this.reconnectionTokens.get(reconnectionToken)
@@ -247,11 +188,24 @@ export class MyRoom extends Room {
         
         player.name = playerName
         this.state.offlinePlayers.delete(reconnectedSessionId)
-        this.state.players.set(newSessionId, player)
-        this.reconnectionTokens.set(reconnectionToken, newSessionId)
-        const message = `${player.name} reconnected in room ${this.roomId} with sessionId: ${newSessionId}`
-        console.log(message)
+        this.state.players.set(client.sessionId, player)
+        this.reconnectionTokens.set(reconnectionToken, client.sessionId)
+        client.view = new StateView()
+        client.view.add(player)
+        const message = `${player.name} reconnected in room ${this.roomId} with sessionId: ${client.sessionId}`
         postMessageToSlack(message)
         return true
+    }
+    
+    updatePlayerView(player, sessionId) {
+        const client = this.clients.getById(sessionId)
+        if (!client) return
+        
+        for (const [_, otherPlayer] of this.state.players) {
+            const dx = player.x - otherPlayer.x
+            const dy = player.y - otherPlayer.y
+            const distance = Math.sqrt(dx * dx + dy * dy)
+            distance < this.renderDistance ? client.view?.add(otherPlayer) : client.view?.remove(otherPlayer)
+        }
     }
 }
