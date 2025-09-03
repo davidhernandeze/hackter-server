@@ -174,7 +174,6 @@ export class MyRoom extends Room {
                     case 3: // left
                         newX -= this.playerSpeed
                         break
-
                 }
 
                 if (this.isPointInMap(newX, newY)) {
@@ -187,8 +186,8 @@ export class MyRoom extends Room {
                 }
             }
 
-            // this.updatePlayerView(player, sessionId)
-            // player.lastRenderCheckAt = new Date().toISOString()
+            this.updatePlayerView(player, sessionId)
+            player.lastRenderCheckAt = new Date().toISOString()
         }
     }
 
