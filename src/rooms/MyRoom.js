@@ -30,10 +30,21 @@ export class MyRoom extends Room {
             if (Object.keys(directions).includes(message)) {
                 player.isMoving = true
                 player.direction = directions[message]
+                player.invisible = false
                 return
             }
             if (message==='stop') {
                 player.isMoving = false
+                return
+            }
+            if (message==='camo') {
+                player.invisible = true
+                player.message = ''
+                player.isMoving = false
+                return
+            }
+            if (message==='clear') {
+                player.message = ''
                 return
             }
             const splitCommand = message.split(' ')
@@ -42,9 +53,7 @@ export class MyRoom extends Room {
 
                 console.log(`${player.name} sent a message: ${message}`)
                 player.message = message
-            }
-            if (message==='clear') {
-                player.message = ''
+                player.invisible = false
             }
         })
     }
@@ -57,15 +66,18 @@ export class MyRoom extends Room {
         const player = new Player()
         player.name = playerName
         player.color = options.color
+        
         const offset = 80
-
         player.x = Math.random() * offset
         player.y = Math.random() * offset
+        
+        player.invisible = false
         player.renderDistance = this.renderDistance
+        
         this.state.players.set(client.sessionId, player)
 
         client.view = new StateView()
-        client.view.add(player)
+        client.view.add(player, 1)
         this.updatePlayerView(player, client.sessionId)
         
         this.reconnectionTokens.set(options.token, client.sessionId)
@@ -176,6 +188,7 @@ export class MyRoom extends Room {
             }
 
             this.updatePlayerView(player, sessionId)
+            player.lastRenderCheckAt = new Date().toISOString()
         }
     }
 
@@ -194,7 +207,7 @@ export class MyRoom extends Room {
         this.reconnectionTokens.set(reconnectionToken, client.sessionId)
         
         client.view = new StateView()
-        client.view.add(player)
+        client.view.add(player, 1)
         this.updatePlayerView(player, client.sessionId)
         
         const message = `${player.name} reconnected in room ${this.roomId} with sessionId: ${client.sessionId}`
@@ -206,7 +219,12 @@ export class MyRoom extends Room {
         const client = this.clients.getById(sessionId)
         if (!client) return
         
-        for (const [_, otherPlayer] of this.state.players) {
+        for (const [otherSessionId, otherPlayer] of this.state.players) {
+            if (sessionId === otherSessionId) continue
+            if (otherPlayer.invisible) {
+                client.view?.remove(otherPlayer)
+                continue
+            }
             const dx = player.x - otherPlayer.x
             const dy = player.y - otherPlayer.y
             const distance = Math.sqrt(dx * dx + dy * dy)
