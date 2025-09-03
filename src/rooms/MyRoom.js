@@ -182,11 +182,11 @@ export class MyRoom extends Room {
                 } else {
                     player.isMoving = false
                     this.state.players.delete(sessionId)
-                    this.clients.getById(sessionId).leave()
+                    // this.clients.getById(sessionId).leave()
                 }
             }
 
-            this.updatePlayerView(player, sessionId)
+            // this.updatePlayerView(player, sessionId)
             // player.lastRenderCheckAt = new Date().toISOString()
         }
     }
