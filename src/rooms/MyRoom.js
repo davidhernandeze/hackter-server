@@ -66,6 +66,8 @@ export class MyRoom extends Room {
 
         client.view = new StateView()
         client.view.add(player)
+        this.updatePlayerView(player, client.sessionId)
+        
         this.reconnectionTokens.set(options.token, client.sessionId)
         
         postMessageToSlack(`${playerName} joined the game at ${new Date().toLocaleTimeString()}`)
@@ -190,8 +192,11 @@ export class MyRoom extends Room {
         this.state.offlinePlayers.delete(reconnectedSessionId)
         this.state.players.set(client.sessionId, player)
         this.reconnectionTokens.set(reconnectionToken, client.sessionId)
+        
         client.view = new StateView()
         client.view.add(player)
+        this.updatePlayerView(player, client.sessionId)
+        
         const message = `${player.name} reconnected in room ${this.roomId} with sessionId: ${client.sessionId}`
         postMessageToSlack(message)
         return true
